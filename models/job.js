@@ -1,6 +1,6 @@
 const db = require("../db");
 const { BadRequestError, NotFoundError } = require("../expressError");
-const { sqlForPartialUpdate, sqlForFilters } = require("../helpers/sql");
+const { sqlForPartialUpdate, sqlForJobFilters } = require("../helpers/sql");
 
 /** Related functions for companies. */
 
@@ -56,11 +56,13 @@ class Job {
      * Returns [{ title, salary, equity, company_handle }, ...]
      * */
     // WHERE title LIKE "%engineer%"
-    static async findAll() {
+    static async findAll(filters) {
 
+        const filtersToSQL = sqlForJobFilters(filters);
         const jobsRes = await db.query(
             `SELECT id, title, salary, equity, company_handle AS "companyHandle"
            FROM jobs
+           ${filtersToSQL}
            ORDER BY title`);
 
         return jobsRes.rows;
@@ -134,8 +136,8 @@ class Job {
            WHERE id = $1
            RETURNING id`, [id]);
         const job = result.rows[0];
-
         if (!job) throw new NotFoundError(`No job found with this name: ${job}`);
+
     }
 }
 

@@ -67,18 +67,25 @@ class Company {
      *
      * Returns { handle, name, description, numEmployees, logoUrl, jobs }
      *   where jobs is [{ id, title, salary, equity, companyHandle }, ...]
-     *
-     * Throws NotFoundError if not found.
+     *  array_to_json(array_agg(row_to_json(x)))
+     *  https://hashrocket.com/blog/posts/faster-json-generation-with-postgresql
+     *  Throws NotFoundError if not found.
      **/
 
     static async get(handle) {
         const companyRes = await db.query(
-            `SELECT handle,
-                  name,
-                  description,
-                  num_employees AS "numEmployees",
-                  logo_url AS "logoUrl"
-           FROM companies
+            `SELECT c.handle,
+                  c.name,
+                  c.description,
+                  c.num_employees AS "numEmployees",
+                  c.logo_url AS "logoUrl",
+                  (SELECT array_to_json(array_agg(row_to_json(x))) FROM (
+                      SELECT id, title, salary, equity 
+                      from JOBS
+                      WHERE company_handle = $1
+                  ) x 
+                  ) AS "jobs"
+           FROM companies as c 
            WHERE handle = $1`, [handle]);
 
         const company = companyRes.rows[0];
